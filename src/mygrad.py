@@ -12,6 +12,8 @@ class Value:
 
     def backward(self):
 
+        self.grad = 1.0
+
         io = [] # input-to-output
         visited = set()
 
@@ -94,16 +96,18 @@ class Value:
         return f"Value(label={self.label}, value={self.value}"
 
     def __add__(self, target):
+        target = target if isinstance(target, Value) else Value(target)
         v = Value(self.value+target.value, _op='+', _child=(self, target))
         def _backward():
             # if you figure the topological thing out, you definitely know why we're accumulating gradients
-            # also karpathy mentioned multivariable case of chain rule, also why you accumulates
+            # also karpathy mentioned multivariable case of chain rule, also why you accumulate
             self.grad += 1.0 * v.grad
             target.grad += 1.0 * v.grad
         v._backward = _backward
         return v
 
     def __mul__(self, target):
+        target = target if isinstance(target, Value) else Value(target)
         v = Value(self.value*target.value, _op='*', _child=(self, target))
         def _backward():
             self.grad += target.value * v.grad
@@ -111,13 +115,52 @@ class Value:
         v._backward = _backward
         return v
 
-    def tanh(self):
-        exp = (math.exp(2*self.value)-1)/(math.exp(2*self.value)+1)
-        v = Value(exp, _op="tanh", _child=(self, ))
+    def __radd__(self, target): # target _op Value
+        return self + target
+
+    def __rmul__(self, target):
+        return self * target
+
+    def __neg__(self):
+        return self * -1
+    
+    def __sub__(self, target):
+        return self + (-target)
+
+    def __rsub__(self, target):
+        return (-self) + target
+
+    def __pow__(self, target):
+        # target = target if isinstance(target, Value) else Value(target)
+        assert isinstance(target, (int, float)), "Andrej said we're only supporting none-value obj here, or it might mess with the backprop, fine"
+        v = Value(self.value**target, _op="^", _child=(self, ))
         def _backward():
-            self.grad += (1 - exp**2) * v.grad
+            self.grad += target * (self.value**(target-1)) * v.grad
+            # self.grad += target.value*(self.value**(target.value-1)) * v.grad
+            # target.grad += (self.value**target.value) * math.log(self.value) * v.grad
+        v._backward = _backward 
+        return v
+
+    def __truediv__(self, target):
+        return self * target**-1
+
+    def __rtruediv__(self, target):
+        return self**-1 * target
+
+    def exp(self):
+        v = Value(math.exp(self.value), _child=(self, ), _op='exp')
+        def _backward():
+            self.grad += v.value * v.grad # derivative of e^x is just e^x, and we just calculated e^x
         v._backward = _backward
         return v
+
+    # def tanh(self):
+    #     exp = (math.exp(2*self.value)-1)/(math.exp(2*self.value)+1)
+    #     v = Value(exp, _op="tanh", _child=(self, ))
+    #     def _backward():
+    #         self.grad += (1 - exp**2) * v.grad
+    #     v._backward = _backward
+    #     return v
 
 if __name__ == "__main__":
 
@@ -137,7 +180,10 @@ if __name__ == "__main__":
 
     x1w1x2w2 = x1w1*x2w2
     n = x1w1x2w2 + b
-    o = n.tanh();o.grad=1.0
+
+    #tanh
+    e = (2*n).exp()
+    o = (e - 1) / (e + 1); 
 
     print(o.grad)
     o.backward()
