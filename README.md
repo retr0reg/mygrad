@@ -1,4 +1,6 @@
-# Mygrad
+# nn
+
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/70d07d99-e5d4-417c-a66d-c17ef3773b44" />
 
 hand replicating a neural network, back propagation from chain rule according to Andrej Karpathy micrograd with neovim, great way to learn neural network under the hood, while practising my calculus (shoutout to 3b1b) and vim skills.
 
