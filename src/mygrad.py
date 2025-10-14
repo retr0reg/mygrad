@@ -11,12 +11,26 @@ class Value:
         self.label = '' # I don't graph it out, but still good to label
 
     def backward(self):
-        visited = set()
-        self._backward()
-        for child in self._child:
-            if child not in visited:
-                if child._backward: print(f"{self.label} backward to {child.label}"); child.backward(); visited.add(child)
 
+        io = [] # input-to-output
+        visited = set()
+
+        def topo(v):
+            if v not in visited:
+                visited.add(v)
+                for child in v._child:
+                    topo(child)
+                io.append(v)
+
+        topo(self)
+        oi = io[::-1] 
+
+        for node in oi:
+            node._backward()
+
+        # for child in self._child:
+            # if child not in visited:
+            #     if child._backward: print(f"{self.label} backward to {child.label}"); child.backward(); visited.add(child)
         # note here the topological sorting accordingly matters alot, I didn't understand why at the begining
         # I began first propagates the gradient only with = (equals), which I understood is wrong because I assume each Value only serves for one dy, thus I changed it to +=
         # but why do we have to put it in topological order, where we eventually'd have the same gradient accumulated just w/ different order?
@@ -66,11 +80,15 @@ class Value:
         # top:
             # 1st b.backward, b.g=3 (because c.backwarded)
             # 2nd b.backward, b.g=3
+            # 3+3 + 3+3 + 4 (c) = 16
         # down
             # 1st b.backward, b.g=1
             # 2nd b.backward, b.g=3
+            # 1+1 + 3+3 + 4 (c) = 12
 
-
+        # Here either is wrong, or even if b is propa
+        # Following topological order is *how is input being changed,* we start from a -> d (a->b->c->d) then reverse it for propagation
+        # the problem is if you look at a, it's not fully 
 
     def __repr__(self):
         return f"Value(label={self.label}, value={self.value}"
@@ -78,6 +96,8 @@ class Value:
     def __add__(self, target):
         v = Value(self.value+target.value, _op='+', _child=(self, target))
         def _backward():
+            # if you figure the topological thing out, you definitely know why we're accumulating gradients
+            # also karpathy mentioned multivariable case of chain rule, also why you accumulates
             self.grad += 1.0 * v.grad
             target.grad += 1.0 * v.grad
         v._backward = _backward
@@ -101,29 +121,24 @@ class Value:
 
 if __name__ == "__main__":
 
+    # input
+    x1 = Value(2.0)
+    x2 = Value(1.0)
 
-    d.grad = 1.0
-    d.backward()
-    print(a.grad)
+    # weights
+    w1 = Value(-3.0)
+    w2 = Value(1.0)
 
-    # inputs
-    # x1 = Value(2.0)
-    # x2 = Value(1.0)
-    #
-    # # weights
-    # w1 = Value(-3.0)
-    # w2 = Value(1.0)
-    #
-    # # bias
-    # b = Value(6.88137)
-    #
-    # x1w1 = x1*w1
-    # x2w2 = x2*w2
-    #
-    # x1w1x2w2 = x1w1*x2w2
-    # n = x1w1x2w2 + b
-    # o = n.tanh();o.grad=1.0
-    #
-    # print(o.grad)
-    # o.backward()
-    # print(x1.grad)
+    # bias
+    b = Value(6.88137)
+
+    x1w1 = x1*w1
+    x2w2 = x2*w2
+
+    x1w1x2w2 = x1w1*x2w2
+    n = x1w1x2w2 + b
+    o = n.tanh();o.grad=1.0
+
+    print(o.grad)
+    o.backward()
+    print(x1.grad)
