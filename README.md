@@ -4,6 +4,11 @@
 
 hand replicating a neural network, back propagation from chain rule according to Andrej Karpathy micrograd with neovim, great way to learn neural network under the hood, while practising my calculus (shoutout to 3b1b) and vim skills.
 
+All of this project is made up from almost two thing:
+
+1. `Value` - a wrapper for a numerical values, with support of finding derivative and gradient (chain-rule aka backprop)
+2. `Neurons`, `Layers`, `MLP` - wrapper for Value & backprop
+
 ## Problem that I had implementing myself w/ heuristics
 
 1. Why not recursion for back propagation? why is topological sort?
@@ -75,3 +80,60 @@ hand replicating a neural network, back propagation from chain rule according to
         # the problem is if you look at a, it's not fully
 ```
 *Answer*: people call it dependency issue, but what it is that in our case b's gradient would be re-used, which during $dd/dc * dc/db$ is $da * da$, where the changes of $dc$ here would be assisted by $da$. But for $dd/db$, $db$'s changes on $dd$ would only be it's derivative $da$. How I think why we use topological here is simply just reversing the input-to-out put process to make sure that we make sure a derivative's derivative wouldn't be misinterpretered, for example $b$ here is changes both $c$ and $d$, we don't want to jump steps  
+
+2. zero-grad problem
+
+this gradient descending sees working right?
+```python
+class MLP:
+    def __init__(self, n_input, *n_neurons):
+        # n_input, n_output[-] -> n_output[1], n_output[2]
+        layers_sz = [n_input] + list(n_neurons)
+        self.layers: list[Layer] = [Layer(layers_sz[i], layers_sz[i+1]) for i in range(len(layers_sz)-1)]
+
+    def __call__(self, input: list[Value]) -> Value | list[Value]:
+        for layer in self.layers:
+            input = layer(input) #type: ignore
+        return input
+
+    def parameters(self):
+        return [param for layer in self.layers for param in layer.parameters()]
+
+mlp = MLP(4, 4, 4, 1)
+
+xs = [
+    [1.0, 0.5, 1.0, 0.5],
+    [-1.0, -1.0, -1.0, -1.0],
+    [1.0, -0.5, 1.0, -0.5],
+    [1.0, 0.5, 1.0, -0.5],
+]
+
+ys = [0.5, -1.0, 0.2, 0.8]
+
+def epoch(i):
+
+    # forward passing
+    yprev: List[Value] = [mlp(x) for x in xs] #type: ignore
+    loss: Value = sum(((yout-ygt)**2 for ygt, yout in zip(ys, yprev)), Value(0)) # for the sake of lint # pyright: ignore[]
+
+    # back prop
+    loss.backward()
+
+    # update
+    for param in mlp.parameters():
+        param.value += -0.01 * param.grad # we're minimizing the instead of increasing it 
+
+    print(i, loss.value)
+
+for i in range(20):
+    epoch(i) 
+
+```
+
+it does work, however not very effciently. If you change epoch to 200 you will find that the nn is only optimizing from a very slow rate, the reason why is didn't set the parameters gradients back to zero, since supposely after updates, weight and biases change, and they're suppose to be zero.
+The reason why this matters, is because we are finding gradient in a multi-variable scenario *(we accumulated gradient since one node might contribute to multiple nodes)* and that effect the child nodes on backprop, simple question, simple solution, just reset parameters.grad to zero. don't worry about the loss function node, too. we set backward obj's gradient to one before backprop.
+
+```python
+for param in mlp.parameters():
+    param.grad = 0
+```
