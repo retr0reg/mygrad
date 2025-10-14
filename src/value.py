@@ -8,7 +8,7 @@ class Value:
         self._child = set(_child)
         self.grad = 0.0
         
-        self.label = '' # I don't graph it out, but still good to label
+        self.label = label # I don't graph it out, but still good to label
 
     def backward(self):
 
@@ -154,13 +154,13 @@ class Value:
         v._backward = _backward
         return v
 
-    # def tanh(self):
-    #     exp = (math.exp(2*self.value)-1)/(math.exp(2*self.value)+1)
-    #     v = Value(exp, _op="tanh", _child=(self, ))
-    #     def _backward():
-    #         self.grad += (1 - exp**2) * v.grad
-    #     v._backward = _backward
-    #     return v
+    def tanh(self):
+        exp = (math.exp(2*self.value)-1)/(math.exp(2*self.value)+1)
+        v = Value(exp, _op="tanh", _child=(self, ))
+        def _backward():
+            self.grad += (1 - exp**2) * v.grad
+        v._backward = _backward
+        return v
 
 if __name__ == "__main__":
 
