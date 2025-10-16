@@ -162,6 +162,13 @@ class Value:
         v._backward = _backward
         return v
 
+    def relu(self):
+        v = Value(max(0, self.value), _child=(self, ), _op="ReLU")
+        def _backward():
+            self.grad += (1 if v.value > 0 else 0) * v.grad
+        v._backward = _backward
+        return v
+
 if __name__ == "__main__":
 
     # input

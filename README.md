@@ -9,6 +9,8 @@ All of this project is made up from almost two thing:
 1. `Value` - a wrapper for a numerical values, with support of finding derivative and gradient (chain-rule aka backprop)
 2. `Neurons`, `Layers`, `MLP` - wrapper for Value & backprop
 
+For now, since it's only a scalar value nn, it might be a good idea to implement `Tensor` etc, might be a good direction to hover on in the future *(thought pretty much all we spent weeks on can be done by lines of code @pytorch.)*, the pain in the butt is you'll have to implement both forward and backward (differentiating) operations for `Tensor` *(which I need to learn a little bit about, I mean I could just ChatGPT everything, but what's the fun of that?)*
+
 ## Problem that I had implementing myself w/ heuristics
 
 1. Why not recursion for back propagation? why is topological sort?

@@ -16,7 +16,7 @@ class Neuron:
         # input[n] * weight[n] ---/
 
         activation = sum((ii * wi for ii, wi in zip(input, self.weights)), Value(0)) + self.bias
-        return activation.tanh()
+        return activation.relu()
 
     def parameters(self):
         return self.weights + [self.bias]
@@ -51,8 +51,6 @@ class MLP:
     def parameters(self):
         return [param for layer in self.layers for param in layer.parameters()]
 
-
-
 mlp = MLP(4, 4, 4, 1)
 
 xs = [
@@ -70,18 +68,15 @@ def epoch(i):
     yprev: List[Value] = [mlp(x) for x in xs] #type: ignore
     loss: Value = sum(((yout-ygt)**2 for ygt, yout in zip(ys, yprev)), Value(0)) # for the sake of lint # pyright: ignore[]
 
-    for param in mlp.parameters():
-        param.grad = 0 # fuck, zero grad problem
-
     # back prop
     loss.backward()
 
-    # update
+    # updat
     for param in mlp.parameters():
         param.value += -0.01 * param.grad # we're minimizing the instead of increasing it 
 
     print(i, loss.value)
 
-for i in range(20000):
+for i in range(200):
     epoch(i) 
 
